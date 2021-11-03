@@ -1,0 +1,289 @@
+---
+title: "BINF*6210 Assignment 1"
+author: "Amanda Meuser"
+output: pdf_document
+date: "Oct. 8th, 2021"
+---
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=65), tidy=TRUE)
+
+```
+
+## Introduction
+
+The family \textit{Alcidae} contains all birds described as auks or alcids, including species such as razorbills, murress, dovekies, guillemots, and puffins (Smith & Clarke, 2014). These birds live in northern costal regions, and as a result they have evolved to be better at swimming than walking or flying, and can dive into the ocean to catch prey (Smith & Clarke, 2014). For this assignment, I will be testing a hypothesis on the geographic distribution of the \textit{Alcidae} family. Specifically, I will be looking into species diversity in this family across continents and using the Bray-Curtis Dissimilarity Index to quantify the diversity. All samples with data uploaded to the BOLD database were collected from only three continents: North America, Europe, and Asia. However, the North American samples come from either side of the continent, and the land acts as a barrier for these birds, such that the communities on either side are unable to interact (Smith & Clarke, 2014). Therefore, I will be treating the East and West Coasts of North America as separate communities for this analysis. 
+
+Data gathered by Smith & Clarke (2014) shows that, while the range of \textit{Alcidae} species connects globally via the Arctic Ocean, these birds inhabit most densely the northern Pacific and Atlantic Oceans. Their ranges overlap from the Canadian east coast to Scandanavia and from eastern Japan to Russia and Alaska. Therefore, I predict that the North American west coast (NAWC) and Asian communities as well as the European and North American east coast (NAEC) communities will have lower dissimilarity index values between them than any other pairs of communities. 
+
+## Data Prepping
+
+I will be using the `tidyverse` package, which includes `dplyr` for data wrangling and `ggplot2` for data visualization. I will use the package, `vegan`, for data analysis and `RColorBrewer` to create colour palettes for plots.`maps` and `geosphere` will be used to create a map plot, and, finally, `outliers` will be used for assessing statistical outliers from the Bray-Curtis Dissimilarity Index analysis.
+
+```{r, results='hide', message=FALSE}
+#Loading the required packages
+library(tidyverse)
+library(vegan)
+library(RColorBrewer)
+library(maps)
+library(geosphere)
+library(outliers)
+
+#Downloading the data from BOLD. Data downloaded Sept. 28, 2021.
+
+#Alcidae <- read_tsv("http://www.boldsystems.org/index.php/API_Public/combined?taxon=Alcidae&format=tsv")
+#write_tsv(Alcidae, "Alcidae_BOLD_data.tsv")
+
+#Importing into RStudio
+birds <- read_tsv(file = "Alcidae_BOLD_data.tsv")
+```
+
+
+``` {r, eval = FALSE}
+#Looking at some characteristics of the data frame
+class(birds)
+names(birds)
+summary(birds)
+```
+```{r}
+dim(birds)
+```
+
+
+This family has 292 unique records with sequences in the BOLD database, forming 23 BINs. However, the downloaded file contains 312 observations, which means there may be duplicate entries.
+
+```{r}
+
+#Finding the duplicates in this file. I used the process ID as it should be unique for each observation unless there are duplicates, so I have chosen to output all observations that have the same process ID for two or more observations. 
+birds %>% 
+  group_by(processid) %>%
+  filter(n() >1 ) %>%
+  summarize(n=n())
+
+```
+
+There appears to be two samples for which there are 11 observations in the data set. Taking a closer look at these isolated rows, they are all identical duplications, so all but one of each will be removed from the data set so that I can work with entirely unique observations.
+
+As well, there are some variables that have no data, so I will filter to make the data frame less cluttered with empty columns.
+
+```{r}
+#Isolating observations with duplicate processid values. 
+duplicates1 <- filter(birds, processid == "GBMTG5904-16")
+duplicates2 <- filter(birds, processid == "GBMTG751-16")
+
+#Filtering to keep only one from each of the duplicated observations 
+birds.unique <- birds %>% 
+  distinct(processid, .keep_all = TRUE) 
+
+#Removing the empty columns (all entries are NA) to declutter the data frame
+birds.unique <- birds.unique[,colSums(is.na(birds.unique))<nrow(birds.unique)]
+
+#Checking remaining number of rows and columns
+dim(birds.unique)
+
+```
+
+Now that the data has been filtered with only unique observations and populated variables retained, I can go on to perform my analyses.
+
+## Geographic distribution
+
+All 292 samples on BOLD were sampled from 4 different continential groups: Europe, Asia, and the North American east and west coasts. I am interested in how species diversity differs between these regions. 
+
+```{r}
+#Removing observations that don't have an entry country, or BIN number 
+birds.unique <- birds.unique %>%
+  filter(!is.na(country)) %>%
+  filter(!is.na(bin_uri))
+
+#Splitting samples up into European and Asian continent groups based on country 
+europe <- filter(birds.unique, country == "Germany" | country == "Norway" | country == "Netherlands" | country == "Sweden" | country == "Iceland")
+asia <- filter(birds.unique, country == "Japan" | country == "Russia" | country == "South Korea")
+
+#Subseting North America into East and West Coast, by province/state. I grouped samples from the Nunavut and Northwest Territories into NAEC because the region of cold-water upwelling that provides a high abundance of food for Alcidae birds extends up from the eastern Canadian coast into the territories (Smith & Clarke, 2014). 
+north_america <- birds.unique %>% 
+  filter(country == "United States" | country == "Canada" | country == "Mexico") %>%
+  filter(!is.na(province_state))
+
+nawc <- filter (north_america, province_state == "Alaska" | province_state == "British Columbia" | province_state == "Oregon" | province_state == "Washington")
+
+naec <- filter (north_america, province_state == "Newfoundland and Labrador" | province_state == "New Brunswick" | province_state == "Northwest Territories" | province_state == "Nunavut" | province_state == "Quebec")
+
+#How many of the samples are from each continential group?
+count(nawc)
+count(naec)
+count(europe)
+count(asia)
+
+#Counting the abundance of BINs in each continential group and adding the continent as a variable so that they can be sorted by this variable later on.
+nawc.abundance  <- nawc %>% 
+  count(bin_uri) %>% 
+  mutate(continent = "N.A. West Coast")
+
+naec.abundance  <- naec %>% 
+  count(bin_uri) %>% 
+  mutate(continent = "N.A. East Coast")
+
+europe.abundance  <- europe %>% 
+  count(bin_uri) %>% 
+  mutate(continent = "Europe")
+
+asia.abundance  <- asia %>% 
+  count(bin_uri) %>% 
+  mutate(continent = "Asia")
+
+
+#Merging the continential groups together into one data frame.
+abundance <- rbind(nawc.abundance, naec.abundance, europe.abundance, asia.abundance)
+
+#Creating a community matrix from the abundance data frame.
+abundance <- abundance %>% relocate(continent, .before = bin_uri)
+abundance.matrix <- pivot_wider(abundance, names_from = bin_uri, values_from = n)
+
+#Replacing NAs with zeros and remove the column containing continent names (tibbles don't allow row names, but 1 = NAWC, 2 = NAEC, 3 = Europe, 4 = Asia).
+abundance.matrix[is.na(abundance.matrix)] <- 0
+abundance.matrix <- abundance.matrix %>% select(-c("continent"))
+
+#Calculating dissimilarity index of BINs groupings between continents then rounding to 3 significant figures, for readability. 
+abun.dist <- vegdist(abundance.matrix)
+(abun.dist.sig <- (signif(abun.dist, 3)))
+
+#Performing a Dixon test to see if the lowest value is a statistically significant outliers in this group. 
+(dixon.test(abun.dist))
+
+#We find that it is! In my hypothesis, I predicted that NAWC and Asia would also have a lower dissimilarity index than that of the group, so I'll test that too. To do so, we have to exclude the 0.182 value from the data set, as Dixon's test only analyses the lowest value in the data set. 
+lowest <- which.min(abun.dist)
+abun.dist.subset <- abun.dist[-lowest ]
+(min(abun.dist.subset))
+
+#I've excluded the lowest number, now I'll perform the Dixon test again.
+(dixon.test(abun.dist.subset))
+
+#While the test says it is an outlier, the p-value is greater than 0.05, therefore it is not statistically significant.
+
+```
+
+
+
+## Figure 1
+
+```{r, fig.keep='last', fig.show='hold'}
+#Exploring RColorBrewer to find a palette with enough colours for the graphs that I need and assigning it to a variable name so that I can use it
+display.brewer.all()
+
+#However, because none of the palettes are large enough to have a distinct colour for each BIN URI, I will use the colorRampPalette() function to expand my desired palette to have the same number of colours as the number of BINs in my dataset. 
+
+bin_length <- length(unique(birds.unique$bin_uri))
+
+#I've created a barplot with the number of observations collected per BIN, per continent. In addition to the colours of the bars themselves, I have specified my bar widths, axis labels, and dimensions/layout of the legend. 
+
+ggplot(data=abundance, aes(x=continent, y=n, fill=bin_uri)) +
+  geom_bar(stat="identity", position = position_dodge2(preserve = "single")) +
+  labs(title="Figure 1. Barplot of BINs per continent",
+        x ="Continent", y = "Number of BINs", fill = "BIN \nURI") +
+  theme_grey() +
+  scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Set1"))(bin_length))+
+  theme(legend.position="bottom", legend.key.size = unit(0.3, "cm"), legend.text = element_text(size = 6)) +
+  guides(fill=guide_legend(nrow=4))
+
+```
+
+
+## Figure 2
+
+```{r plot, fig.show='hold'}
+#Creating a world map with links between continents which indicate dissimilarity indices by their thicknesses. I will be using the map() function to generate the map, and a custom function by Jeff Leek (2011) for the lines between plotted points. 
+
+
+#The function to have the furthest points make a large loop on the bottom/top of the map rather than going 'behind' the map, created by Jeff Leek:
+getGreatCircle <- function(userLL,relationLL){
+  tmpCircle = greatCircle(userLL,relationLL, n=200)
+  start = which.min(abs(tmpCircle[,1] - data.frame(userLL)[1,1]))
+  end = which.min(abs(tmpCircle[,1] - relationLL[1]))
+  greatC = tmpCircle[start:end,]
+  return(greatC)
+}
+
+#Creating the coordinants for the points representing the continents and combind them into a data frame, specifying the coordinantes as latitude and longitude 
+NAWC <- c(-125,50)
+NAEC <- c(-75, 45)
+Europe <- c(7,53)
+Asia <- c(135,55)
+data <- rbind(NAWC, NAEC, Europe, Asia)  %>% as.data.frame()
+colnames(data)=c("long","lat")
+
+
+#Creating the background map and center point to reference the coordinates from 
+par(mar=c(0,0,0,0))
+map('world',col="#e1e1e1", fill=TRUE, bg="white", lwd=0.05,mar=rep(0,4),border=0, ylim=c(-80,80) )
+
+
+#Modeling the dissimilarity index values from the vegdist() as the line width connecting the respective points on the map. To do so, I'm exponentiating the dissimilarity index values with base 10 so that they translate into functional numeric input for the lwd option in the lines function. 
+great <- getGreatCircle(Europe, Asia)
+lines(great, col="steelblue3", lwd=10^0.966)
+great <- getGreatCircle(NAWC, Asia)
+lines(great, col="steelblue3", lwd=10^0.679)
+great <- getGreatCircle(Europe, NAWC)
+lines(great, col="steelblue3", lwd=10^0.852)
+great <- getGreatCircle(NAEC, Asia)
+lines(great, col="steelblue3", lwd=10^0.964)
+great <- getGreatCircle(NAEC, Europe)
+lines(great, col="steelblue3", lwd=10^0.182)
+great <- getGreatCircle(NAEC, NAWC)
+lines(great, col="steelblue3", lwd=10^0.879)
+
+#Adding the continent dots and name labels
+points(x=data$long, y=data$lat, col="royalblue4", cex=3, pch=20)
+text(rownames(data), x=data$long, y=data$lat,  col="black", cex=0.75, pos=2)
+
+#Add a title
+title("Figure 2. Map of Bray-Curtis dissimilarity index between continents", cex.main = 1, adj = 0.1, line = 1)
+
+#Add legend 
+legend(-170, -10, legend=c("1.00", "0.750", "0.500", "0.250"), col="steelblue3", lwd = c(10, 7.5, 5, 2.5),
+       title="Bray-Curtis \nDissimilarity Index", cex = 0.65, text.font=1, box.lty=0)
+```
+
+
+
+## Results and Discussion 
+
+For the first exploration into geographic distribution, I grouped all observations into 4 continential groups. There were 86 observations from the North American west coast, 30 observations from the North American east coast, 36 observations from Europe, and 82 observations from Asia. As a result of the `vegdist()` function, I found dissimilarity index values between these continential groups to be as follows:
+
+```{r}
+results.names <- c("NAWC & NAEC", "NAWC & Europe", "NAWC & Asia", "Europe & NAEC", "Asia & NAEC", "Asia & Europe")
+results <- data.frame(cbind(results.names, abun.dist.sig))
+colnames(results) <- c("Continential Groups", "Dissimilarity Index")
+(results)
+
+```
+
+The Dixon test determined that the dissimilarity index value between NAEC & Europe are statistical outliers from the mean value of the group, but that the the dissimilarity index value between NAWC & Asia, while being the second lowest value in the group, is not an outlier as well. The study done by Smith & Clarke (2014) shows the highest density of \textit{Alcidae} inhabiting the northern Atlantic Ocean than Pacific, which is supported by these results, with the dissimilarity index value being the lowest between Europe and the NAEC than any other continential groups. Overall, these results confirm my prediction that the lowest dissimilarity index values would be between these pairs of continential groups, albeit that the the dissimilarity index value between NAWC & Asia was not significant. 
+
+To improve upon this investigation, I would increase sample sizes, particularly in Europe and the NAEC as there were fewer than half as many observations from these locations than from Asia and the NAWC. While there were still enough samples to complete analyses with statistically significant results, a more even number of samples from each location would help to reduce potential bias. As well, multiple samples were excluded as the location data associated with them were insufficient to categorize them with the present continential groups (i.e. country data was present but not province/state data). Finally, there are about three times more individuals all belonging to BIN #AAAC2624 in the Asian continential group than exist in any other BIN, in any other continential group. While the dissimilarity index value between Asia and the NAWC was still the second lowest between all continential groups, I believe it may have also been a statistical outlier had it not been for this bias in the samples from Asia. 
+
+For future studies, I would be interested in assessing how community diversity between continential groups evolves over time, especially on either coast of North America. The far greater distribution of species across vast oceans than land masses provides an interesting case study where many of the same species live on either side of the continent (shown in Fig. 1) but have overlapping ranges with species from different areas (i.e. from Asia vs Europe). While hybridization between birds is not common, the potential for it between two  or multiple closely related species exists once pre-zygotic barriers are removed, such as through overlapping species ranges (Justyn et al., 2020; Ottenburghs, 2019). This could lead to speciation and greater diversity between communities such as the NAWC and NAEC that are relatively close in distance yet scored high on the Bray-Curtis dissimilarity index. I hypothesize that there is likely already genetic divergence between the same species that inhabit either coast of North America, due to these factors. 
+
+## Acknowledgements
+
+I had some help from Jacqueline (our TA) and Alex Smith during the help session on Mon. Oct. 4th, with regards to finding a function and package for the map plot I made, but otherwise didn't discuss the project with other classmates.
+
+
+
+## References
+
+Holtz, Y. (n.d.). How to draw connecting routes on map with R. The R Graph Gallery. Retrieved October 5, 2021, from https://www.r-graph-gallery.com/how-to-draw-connecting-routes-on-map-with-r-and-great-circles.html. 
+
+Justyn, N. M., Callaghan, C. T., & Hill, G. E. (2020). Birds rarely hybridize: A citizen science approach to estimating rates of hybridization in the wild. Evolution, 74(6), 1216–1223. https://doi.org/10.1111/evo.13943
+
+Kanevsky, G. (2013, September 13). How to expand color palette with ggplot and rcolorbrewer: R-bloggers. R Bloggers. Retrieved October 4, 2021, from https://www.r-bloggers.com/2013/09/how-to-expand-color-palette-with-ggplot-and-rcolorbrewer/. 
+
+Leek, J. (2011, December 21). An R function to map your twitter followers. Simply Statistics. Retrieved October 5, 2021, from https://simplystatistics.tumblr.com/post/14568185310/an-r-function-to-map-your-twitter-followers. 
+
+Ottenburghs, J. (2019). Multispecies hybridization in birds. Avian Research, 10(1), 1–11. https://doi.org/10.1186/s40657-019-0159-4
+
+Smith, N. A., & Clarke, J. A. (2015). Systematics and evolution of the Pan-Alcidae (Aves, Charadriiformes). Journal of Avian Biology, 46(2), 125–140. https://doi.org/10.1111/jav.00487
+
+Soetewey, A. (2020, August 11). Outliers detection in R. Stats and R. Retrieved October 6, 2021, from https://statsandr.com/blog/outliers-detection-in-r/#statistical-tests. 
+
+Talipov, M. (2015, January 30). Find duplicated elements with dplyr. Stack Overflow. Retrieved October 1, 2021, from https://stackoverflow.com/questions/28244123/find-duplicated-elements-with-dplyr. 
+

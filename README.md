@@ -1,1 +1,1 @@
-Assessing the Bray-Curtis Dissimilarity Index between 4 continent-based groups of birds in the \texit{Alcidae} family.
+Assessing the Bray-Curtis Dissimilarity Index between 4 continent-based groups of birds in the *Alcidae* family.

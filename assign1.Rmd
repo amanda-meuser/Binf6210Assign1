@@ -100,38 +100,38 @@ europe <- filter(birds.unique, country == "Germany" | country == "Norway" | coun
 asia <- filter(birds.unique, country == "Japan" | country == "Russia" | country == "South Korea")
 
 #Subseting North America into East and West Coast, by province/state. I grouped samples from the Nunavut and Northwest Territories into NAEC because the region of cold-water upwelling that provides a high abundance of food for Alcidae birds extends up from the eastern Canadian coast into the territories (Smith & Clarke, 2014). 
+
 #Created df's for NA East Coast and NA West Coast based on provinces and states.
-nawc <- birds.unique %>%
-  filter (province_state == "Alaska" | province_state == "British Columbia" | province_state == "Oregon" | province_state == "Washington") %>%
-  filter(!is.na(province_state))
-
-naec <- birds.unique %>%
-  filter (province_state == "Newfoundland and Labrador" | province_state == "New Brunswick" | province_state == "Northwest Territories" | province_state == "Nunavut" | province_state == "Quebec") %>%
-  filter(!is.na(province_state))
-
-
-#How many of the samples are from each continential group?
-count(nawc)
-count(naec)
-count(europe)
-count(asia)
-
 #Counting the abundance of BINs in each continential group and adding the continent as a variable so that they can be sorted by this variable later on.
-nawc.abundance  <- nawc %>% 
+
+nawc.abundance <- birds.unique %>%
+  filter (province_state == "Alaska" | province_state == "British Columbia" | province_state == "Oregon" | province_state == "Washington") %>%
+  filter(!is.na(province_state)) %>%
   count(bin_uri) %>% 
   mutate(continent = "N.A. West Coast")
 
-naec.abundance  <- naec %>% 
+naec.abundance <- birds.unique %>%
+  filter (province_state == "Newfoundland and Labrador" | province_state == "New Brunswick" | province_state == "Northwest Territories" | province_state == "Nunavut" | province_state == "Quebec") %>%
+  filter(!is.na(province_state)) %>%
   count(bin_uri) %>% 
   mutate(continent = "N.A. East Coast")
 
-europe.abundance  <- europe %>% 
-  count(bin_uri) %>% 
+europe.abundance <- birds.unique %>%
+  filter(country == "Germany" | country == "Norway" | country == "Netherlands" | country == "Sweden" | country == "Iceland") %>%
+  count(bin_uri) %>%
   mutate(continent = "Europe")
 
-asia.abundance  <- asia %>% 
-  count(bin_uri) %>% 
+asia.abundance <- birds.unique %>%
+  filter(country == "Japan" | country == "Russia" | country == "South Korea") %>%
+  count(bin_uri) %>%
   mutate(continent = "Asia")
+
+
+#How many of the samples are from each continential group?
+count(nawc.abundance)
+count(naec.abundance)
+count(europe.abundance)
+count(asia.abundance)
 
 
 #Merging the continential groups together into one data frame.

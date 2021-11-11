@@ -100,13 +100,15 @@ europe <- filter(birds.unique, country == "Germany" | country == "Norway" | coun
 asia <- filter(birds.unique, country == "Japan" | country == "Russia" | country == "South Korea")
 
 #Subseting North America into East and West Coast, by province/state. I grouped samples from the Nunavut and Northwest Territories into NAEC because the region of cold-water upwelling that provides a high abundance of food for Alcidae birds extends up from the eastern Canadian coast into the territories (Smith & Clarke, 2014). 
-north_america <- birds.unique %>% 
-  filter(country == "United States" | country == "Canada" | country == "Mexico") %>%
+#Created df's for NA East Coast and NA West Coast based on provinces and states.
+nawc <- birds.unique %>%
+  filter (province_state == "Alaska" | province_state == "British Columbia" | province_state == "Oregon" | province_state == "Washington") %>%
   filter(!is.na(province_state))
 
-nawc <- filter (north_america, province_state == "Alaska" | province_state == "British Columbia" | province_state == "Oregon" | province_state == "Washington")
+naec <- birds.unique %>%
+  filter (province_state == "Newfoundland and Labrador" | province_state == "New Brunswick" | province_state == "Northwest Territories" | province_state == "Nunavut" | province_state == "Quebec") %>%
+  filter(!is.na(province_state))
 
-naec <- filter (north_america, province_state == "Newfoundland and Labrador" | province_state == "New Brunswick" | province_state == "Northwest Territories" | province_state == "Nunavut" | province_state == "Quebec")
 
 #How many of the samples are from each continential group?
 count(nawc)

@@ -95,10 +95,6 @@ birds.unique <- birds.unique %>%
   filter(!is.na(country)) %>%
   filter(!is.na(bin_uri))
 
-#Splitting samples up into European and Asian continent groups based on country 
-europe <- filter(birds.unique, country == "Germany" | country == "Norway" | country == "Netherlands" | country == "Sweden" | country == "Iceland")
-asia <- filter(birds.unique, country == "Japan" | country == "Russia" | country == "South Korea")
-
 #Subseting North America into East and West Coast, by province/state. I grouped samples from the Nunavut and Northwest Territories into NAEC because the region of cold-water upwelling that provides a high abundance of food for Alcidae birds extends up from the eastern Canadian coast into the territories (Smith & Clarke, 2014). 
 
 #Created df's for NA East Coast and NA West Coast based on provinces and states.

@@ -216,18 +216,26 @@ map('world',col="#e1e1e1", fill=TRUE, bg="white", lwd=0.05,mar=rep(0,4),border=0
 
 
 #Modeling the dissimilarity index values from the vegdist() as the line width connecting the respective points on the map. To do so, I'm exponentiating the dissimilarity index values with base 10 so that they translate into functional numeric input for the lwd option in the lines function. 
-great <- getGreatCircle(Europe, Asia)
-lines(great, col="steelblue3", lwd=10^0.966)
-great <- getGreatCircle(NAWC, Asia)
-lines(great, col="steelblue3", lwd=10^0.679)
-great <- getGreatCircle(Europe, NAWC)
-lines(great, col="steelblue3", lwd=10^0.852)
-great <- getGreatCircle(NAEC, Asia)
-lines(great, col="steelblue3", lwd=10^0.964)
-great <- getGreatCircle(NAEC, Europe)
-lines(great, col="steelblue3", lwd=10^0.182)
+#Placed results data frame creation here before the map, since then the dissimilarity values can be obtained straight from this data set, by creating a vector that takes all the values to the power of 10. This makes the code more general, just in case you wanted to explore other values and would not have to input those values again into the code.
+
+results.names <- c("NAWC & NAEC", "NAWC & Europe", "NAWC & Asia", "Europe & NAEC", "Asia & NAEC", "Asia & Europe")
+results <- data.frame(cbind(results.names, abun.dist.sig))
+colnames(results) <- c("Continential Groups", "Dissimilarity Index")
+(results)
+results.log <- 10^(as.numeric(results$`Dissimilarity Index`))
+
 great <- getGreatCircle(NAEC, NAWC)
-lines(great, col="steelblue3", lwd=10^0.879)
+lines(great, col="steelblue3", lwd=results.log[1])
+great <- getGreatCircle(Europe, NAWC)
+lines(great, col="steelblue3", lwd=results.log[2])
+great <- getGreatCircle(NAWC, Asia)
+lines(great, col="steelblue3", lwd=results.log[3])
+great <- getGreatCircle(NAEC, Europe)
+lines(great, col="steelblue3", lwd=results.log[4])
+great <- getGreatCircle(NAEC, Asia)
+lines(great, col="steelblue3", lwd=results.log[5])
+great <- getGreatCircle(Europe, Asia)
+lines(great, col="steelblue3", lwd=results.log[6])
 
 #Adding the continent dots and name labels
 points(x=data$long, y=data$lat, col="royalblue4", cex=3, pch=20)
@@ -248,9 +256,7 @@ legend(-170, -10, legend=c("1.00", "0.750", "0.500", "0.250"), col="steelblue3",
 For the first exploration into geographic distribution, I grouped all observations into 4 continential groups. There were 86 observations from the North American west coast, 30 observations from the North American east coast, 36 observations from Europe, and 82 observations from Asia. As a result of the `vegdist()` function, I found dissimilarity index values between these continential groups to be as follows:
 
 ```{r}
-results.names <- c("NAWC & NAEC", "NAWC & Europe", "NAWC & Asia", "Europe & NAEC", "Asia & NAEC", "Asia & Europe")
-results <- data.frame(cbind(results.names, abun.dist.sig))
-colnames(results) <- c("Continential Groups", "Dissimilarity Index")
+
 (results)
 
 ```

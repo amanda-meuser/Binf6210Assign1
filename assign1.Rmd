@@ -28,6 +28,7 @@ library(RColorBrewer)
 library(maps)
 library(geosphere)
 library(outliers)
+source("col.fun.r")
 
 #Downloading the data from BOLD. Data downloaded Sept. 28, 2021.
 

@@ -1,11 +1,7 @@
 
-
+#Write a function that outputs a colour based on the value, if inputting a vector, and will return a string detailing a specific colour
 
 #Write a loop for choosing colour in graph
-
-#so have 4 colours, 
-
-#Write a function that outputs a colour based on the value
 
 col.fun <- function(x) {
   if (x > 0.75) {

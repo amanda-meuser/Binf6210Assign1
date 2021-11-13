@@ -130,7 +130,6 @@ count(naec.abundance)
 count(europe.abundance)
 count(asia.abundance)
 
-
 #Merging the continential groups together into one data frame.
 abundance <- rbind(nawc.abundance, naec.abundance, europe.abundance, asia.abundance)
 
@@ -226,17 +225,17 @@ colnames(results) <- c("Continential Groups", "Dissimilarity Index")
 results.log <- 10^(as.numeric(results$`Dissimilarity Index`))
 
 great <- getGreatCircle(NAEC, NAWC)
-lines(great, col="steelblue3", lwd=results.log[1])
+lines(great, col= col.fun(results[1,2]), lty = 1:4, lwd=results.log[1])
 great <- getGreatCircle(Europe, NAWC)
-lines(great, col="steelblue3", lwd=results.log[2])
+lines(great, col= col.fun(results[2,2]), lwd=results.log[2])
 great <- getGreatCircle(NAWC, Asia)
-lines(great, col="steelblue3", lwd=results.log[3])
+lines(great, col= col.fun(results[3,2]), lwd=results.log[3])
 great <- getGreatCircle(NAEC, Europe)
-lines(great, col="steelblue3", lwd=results.log[4])
+lines(great, col= col.fun(results[4,2]), lwd=results.log[4])
 great <- getGreatCircle(NAEC, Asia)
-lines(great, col="steelblue3", lwd=results.log[5])
+lines(great, col= col.fun(results[5,2]), lwd=results.log[5])
 great <- getGreatCircle(Europe, Asia)
-lines(great, col="steelblue3", lwd=results.log[6])
+lines(great, col= col.fun(results[6,2]), lwd=results.log[6])
 
 #Adding the continent dots and name labels
 points(x=data$long, y=data$lat, col="royalblue4", cex=3, pch=20)
@@ -246,7 +245,7 @@ text(rownames(data), x=data$long, y=data$lat,  col="black", cex=0.75, pos=2)
 title("Figure 2. Map of Bray-Curtis dissimilarity index between continents", cex.main = 1, adj = 0.1, line = 1)
 
 #Add legend 
-legend(-170, -10, legend=c("1.00", "0.750", "0.500", "0.250"), col="steelblue3", lwd = c(10, 7.5, 5, 2.5),
+legend(-170, -10, legend=c("1.00", "0.750", "0.500", "0.250"), col= c("steelblue", "mediumorchid4", "palevioletred", "firebrick2"), lwd = c(10, 7.5, 5, 2.5),
        title="Bray-Curtis \nDissimilarity Index", cex = 0.65, text.font=1, box.lty=0)
 ```
 

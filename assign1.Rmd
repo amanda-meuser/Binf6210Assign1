@@ -269,7 +269,7 @@ For future studies, I would be interested in assessing how community diversity b
 
 ## Acknowledgements
 
-I had some help from Jacqueline (our TA) and Alex Smith during the help session on Mon. Oct. 4th, with regards to finding a function and package for the map plot I made, but otherwise didn't discuss the project with other classmates.
+I had help from Jacqueline (our TA) and Alex Smith during the help session on Mon. Oct. 4th, with regards to finding a function and package for the map plot I made. This script was also improved with contributions from Ana Patricia Balbon, Hanah Alex, and, especially, Philip Drewniak. 
 
 
 

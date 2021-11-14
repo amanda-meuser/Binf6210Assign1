@@ -28,6 +28,7 @@ library(RColorBrewer)
 library(maps)
 library(geosphere)
 library(outliers)
+source("col.fun.r")
 
 #Downloading the data from BOLD. Data downloaded Sept. 28, 2021.
 
@@ -95,42 +96,39 @@ birds.unique <- birds.unique %>%
   filter(!is.na(country)) %>%
   filter(!is.na(bin_uri))
 
-#Splitting samples up into European and Asian continent groups based on country 
-europe <- filter(birds.unique, country == "Germany" | country == "Norway" | country == "Netherlands" | country == "Sweden" | country == "Iceland")
-asia <- filter(birds.unique, country == "Japan" | country == "Russia" | country == "South Korea")
-
 #Subseting North America into East and West Coast, by province/state. I grouped samples from the Nunavut and Northwest Territories into NAEC because the region of cold-water upwelling that provides a high abundance of food for Alcidae birds extends up from the eastern Canadian coast into the territories (Smith & Clarke, 2014). 
-north_america <- birds.unique %>% 
-  filter(country == "United States" | country == "Canada" | country == "Mexico") %>%
-  filter(!is.na(province_state))
 
-nawc <- filter (north_america, province_state == "Alaska" | province_state == "British Columbia" | province_state == "Oregon" | province_state == "Washington")
-
-naec <- filter (north_america, province_state == "Newfoundland and Labrador" | province_state == "New Brunswick" | province_state == "Northwest Territories" | province_state == "Nunavut" | province_state == "Quebec")
-
-#How many of the samples are from each continential group?
-count(nawc)
-count(naec)
-count(europe)
-count(asia)
-
+#Created df's for NA East Coast and NA West Coast based on provinces and states.
 #Counting the abundance of BINs in each continential group and adding the continent as a variable so that they can be sorted by this variable later on.
-nawc.abundance  <- nawc %>% 
+
+nawc.abundance <- birds.unique %>%
+  filter (province_state == "Alaska" | province_state == "British Columbia" | province_state == "Oregon" | province_state == "Washington") %>%
+  filter(!is.na(province_state)) %>%
   count(bin_uri) %>% 
   mutate(continent = "N.A. West Coast")
 
-naec.abundance  <- naec %>% 
+naec.abundance <- birds.unique %>%
+  filter (province_state == "Newfoundland and Labrador" | province_state == "New Brunswick" | province_state == "Northwest Territories" | province_state == "Nunavut" | province_state == "Quebec") %>%
+  filter(!is.na(province_state)) %>%
   count(bin_uri) %>% 
   mutate(continent = "N.A. East Coast")
 
-europe.abundance  <- europe %>% 
-  count(bin_uri) %>% 
+europe.abundance <- birds.unique %>%
+  filter(country == "Germany" | country == "Norway" | country == "Netherlands" | country == "Sweden" | country == "Iceland") %>%
+  count(bin_uri) %>%
   mutate(continent = "Europe")
 
-asia.abundance  <- asia %>% 
-  count(bin_uri) %>% 
+asia.abundance <- birds.unique %>%
+  filter(country == "Japan" | country == "Russia" | country == "South Korea") %>%
+  count(bin_uri) %>%
   mutate(continent = "Asia")
 
+
+#How many of the samples are from each continential group?
+count(nawc.abundance)
+count(naec.abundance)
+count(europe.abundance)
+count(asia.abundance)
 
 #Merging the continential groups together into one data frame.
 abundance <- rbind(nawc.abundance, naec.abundance, europe.abundance, asia.abundance)
@@ -218,18 +216,26 @@ map('world',col="#e1e1e1", fill=TRUE, bg="white", lwd=0.05,mar=rep(0,4),border=0
 
 
 #Modeling the dissimilarity index values from the vegdist() as the line width connecting the respective points on the map. To do so, I'm exponentiating the dissimilarity index values with base 10 so that they translate into functional numeric input for the lwd option in the lines function. 
-great <- getGreatCircle(Europe, Asia)
-lines(great, col="steelblue3", lwd=10^0.966)
-great <- getGreatCircle(NAWC, Asia)
-lines(great, col="steelblue3", lwd=10^0.679)
-great <- getGreatCircle(Europe, NAWC)
-lines(great, col="steelblue3", lwd=10^0.852)
-great <- getGreatCircle(NAEC, Asia)
-lines(great, col="steelblue3", lwd=10^0.964)
-great <- getGreatCircle(NAEC, Europe)
-lines(great, col="steelblue3", lwd=10^0.182)
+#Placed results data frame creation here before the map, since then the dissimilarity values can be obtained straight from this data set, by creating a vector that takes all the values to the power of 10. This makes the code more general, just in case you wanted to explore other values and would not have to input those values again into the code.
+
+results.names <- c("NAWC & NAEC", "NAWC & Europe", "NAWC & Asia", "Europe & NAEC", "Asia & NAEC", "Asia & Europe")
+results <- data.frame(cbind(results.names, abun.dist.sig))
+colnames(results) <- c("Continential Groups", "Dissimilarity Index")
+(results)
+results.log <- 10^(as.numeric(results$`Dissimilarity Index`))
+
 great <- getGreatCircle(NAEC, NAWC)
-lines(great, col="steelblue3", lwd=10^0.879)
+lines(great, col= col.fun(results[1,2]), lty = 1:4, lwd=results.log[1])
+great <- getGreatCircle(Europe, NAWC)
+lines(great, col= col.fun(results[2,2]), lwd=results.log[2])
+great <- getGreatCircle(NAWC, Asia)
+lines(great, col= col.fun(results[3,2]), lwd=results.log[3])
+great <- getGreatCircle(NAEC, Europe)
+lines(great, col= col.fun(results[4,2]), lwd=results.log[4])
+great <- getGreatCircle(NAEC, Asia)
+lines(great, col= col.fun(results[5,2]), lwd=results.log[5])
+great <- getGreatCircle(Europe, Asia)
+lines(great, col= col.fun(results[6,2]), lwd=results.log[6])
 
 #Adding the continent dots and name labels
 points(x=data$long, y=data$lat, col="royalblue4", cex=3, pch=20)
@@ -239,7 +245,7 @@ text(rownames(data), x=data$long, y=data$lat,  col="black", cex=0.75, pos=2)
 title("Figure 2. Map of Bray-Curtis dissimilarity index between continents", cex.main = 1, adj = 0.1, line = 1)
 
 #Add legend 
-legend(-170, -10, legend=c("1.00", "0.750", "0.500", "0.250"), col="steelblue3", lwd = c(10, 7.5, 5, 2.5),
+legend(-170, -10, legend=c("1.00", "0.750", "0.500", "0.250"), col= c("steelblue", "mediumorchid4", "palevioletred", "firebrick2"), lwd = c(10, 7.5, 5, 2.5),
        title="Bray-Curtis \nDissimilarity Index", cex = 0.65, text.font=1, box.lty=0)
 ```
 
@@ -250,9 +256,7 @@ legend(-170, -10, legend=c("1.00", "0.750", "0.500", "0.250"), col="steelblue3",
 For the first exploration into geographic distribution, I grouped all observations into 4 continential groups. There were 86 observations from the North American west coast, 30 observations from the North American east coast, 36 observations from Europe, and 82 observations from Asia. As a result of the `vegdist()` function, I found dissimilarity index values between these continential groups to be as follows:
 
 ```{r}
-results.names <- c("NAWC & NAEC", "NAWC & Europe", "NAWC & Asia", "Europe & NAEC", "Asia & NAEC", "Asia & Europe")
-results <- data.frame(cbind(results.names, abun.dist.sig))
-colnames(results) <- c("Continential Groups", "Dissimilarity Index")
+
 (results)
 
 ```

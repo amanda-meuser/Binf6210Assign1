@@ -1,4 +1,4 @@
-The scripts for this project were improved with contributions from Ana Patricia Balbon, Philip Drewniak, and Hanah Alex. 
+The scripts for this project were improved with contributions from Eric Sartor, Ana Patricia Balbon, Philip Drewniak, and Hanah Alex. 
 
 Alcidae_BOLD_data.tsv contains data downloaded from BOLD data base.
 

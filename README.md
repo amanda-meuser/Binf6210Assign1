@@ -1,3 +1,5 @@
+# BINF6210 Assignment 1 - Fall 2021
+
 The scripts for this project were improved with contributions from Ana Patricia Balbon, Philip Drewniak, and Hanah Alex. 
 
 Alcidae_BOLD_data.tsv contains data downloaded from BOLD data base.
